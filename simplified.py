@@ -12,6 +12,8 @@ import sys, os, random, hashlib
 
 from math import *
 
+import heapq
+
 """
 Python Motion Tracker
 
@@ -28,6 +30,7 @@ left = 0
 right = 1
 
 display_ratio = 2.5
+
 
 def merge_collided_bboxes( bbox_list ):
     # For every bbox...
@@ -89,6 +92,9 @@ def detect_faces( image, haar_cascade, mem_storage ):
         box = face[0]
         cv.Rectangle(image, ( box[0], box[1] ),
             ( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
+
+def saveScene(fn, image):
+    cv.SaveImage(fn, image)
 
 
 class Target:
@@ -162,8 +168,16 @@ class Target:
         codebook=[]
         frame_count=0
         last_frame_entity_list = []
+
+        # For obj counting
         last_frame_objs = 0
         obj_count = 0
+
+        # For image saving
+        last_scene_clear = False
+        time_limit = 2.0
+        last_save_time = time.time()
+        accumulated_scenes = []
 
         t0 = time.time()
 
@@ -294,6 +308,7 @@ class Target:
                 cv.Rectangle( display_image, box[0], box[1], cv.CV_RGB(0,255,0), 1 )
 
 
+            # For obj counting
             print str(len(bounding_box_list)) + " boxes found."
             if (len(bounding_box_list) > last_frame_objs):
                 obj_count += len(bounding_box_list) - last_frame_objs
@@ -391,7 +406,7 @@ class Target:
                 if (not center_point in trimmed_center_points) and (not center_point in removed_center_points):
                     trimmed_center_points.append( center_point )
 
-            # Draw what we found:
+            # Draw what we found: Test Testd
             #for center_point in trimmed_center_points:
             #   center_point = ( int(center_point[0]), int(center_point[1]) )
             #   cv.Circle(display_image, center_point, 20, cv.CV_RGB(255, 255,255), 1)
@@ -494,6 +509,23 @@ class Target:
 
             image_name = image_list[ image_index ]
 
+
+            # For image saving
+            if len(bounding_box_list) > 0:
+                if last_scene_clear and time.time() - last_save_time > time_limit:
+                    saveScene(str(time.time()) + ".jpg", display_image)
+                    last_save_time = time.time()
+
+            if len(bounding_box_list) == 0:
+                last_scene_clear = True
+            else:
+                last_scene_clear = False
+
+
+
+
+
+
             # Display frame to user
             if image_name == "camera":
                 image = camera_image
@@ -543,8 +575,6 @@ class Target:
 
 if __name__=="__main__":
     t = Target()
-#   import cProfile
-#   cProfile.run( 't.run()' )
     t.run()
 
 
