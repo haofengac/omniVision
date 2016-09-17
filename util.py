@@ -1,4 +1,5 @@
 import cv
+from config import *
 
 TOP = 0
 BOTTOM = 1
