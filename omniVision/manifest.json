@@ -1,6 +1,6 @@
 {
-  "name": "Friendly Chat",
-  "short_name": "Friendly Chat",
+  "name": "Omni Vision",
+  "short_name": "Omni Vision",
   "start_url": "/index.html",
   "display": "standalone",
   "orientation": "portrait"

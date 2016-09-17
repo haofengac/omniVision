@@ -1,11 +1,10 @@
 {
   "version": "1.0.0",
-  "name": "Friendly Chat",
+  "name": "Omni Vision",
   "launch_path": "/index.html",
-  "description": "Chat with friends using Firebase 2.0",
+  "description": "Security camera app using Firebase 2.0",
   "developer": {
-    "name": "Google inc.",
-    "url": "https://firebase.google.com"
+    "name": "Hippie Crack"
   },
   "installs_allowed_from": [
     "*"
@@ -15,8 +14,8 @@
   },
   "locales": {
     "en": {
-      "name": "Friendly Chat",
-      "description": "Chat with friends using Firebase 2.0"
+      "name": "Omni Vision",
+      "description": "Security camera app using Firebase 2.0"
     }
   }
 }
