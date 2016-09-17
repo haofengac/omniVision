@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import cv2.cv as cv
+import cv
 import cv2
 import time
 
@@ -9,6 +9,7 @@ from scipy import *
 from scipy.cluster import vq
 import numpy as np
 import sys, os, random, hashlib
+import util
 
 from math import *
 
@@ -24,78 +25,11 @@ Detected motion events are logged to a text file.  Also has face detection.
 #
 # BBoxes must be in the format:
 # ( (topleft_x), (topleft_y) ), ( (bottomright_x), (bottomright_y) ) )
-top = 0
-bottom = 1
-left = 0
-right = 1
-
+TOP = 0
+BOTTOM = 1
+LEFT = 0
+RIGHT = 1
 display_ratio = 2.5
-
-
-def merge_collided_bboxes( bbox_list ):
-    # For every bbox...
-    for this_bbox in bbox_list:
-
-        # Collision detect every other bbox:
-        for other_bbox in bbox_list:
-            if this_bbox is other_bbox: continue  # Skip self
-
-            # Assume a collision to start out with:
-            has_collision = True
-
-            # These coords are in screen coords, so > means
-            # "lower than" and "further right than".  And <
-            # means "higher than" and "further left than".
-
-            # We also inflate the box size by 10% to deal with
-            # fuzziness in the data.  (Without this, there are many times a bbox
-            # is short of overlap by just one or two pixels.)
-            if (this_bbox[bottom][0]*1.1 < other_bbox[top][0]*0.9): has_collision = False
-            if (this_bbox[top][0]*.9 > other_bbox[bottom][0]*1.1): has_collision = False
-
-            if (this_bbox[right][1]*1.1 < other_bbox[left][1]*0.9): has_collision = False
-            if (this_bbox[left][1]*0.9 > other_bbox[right][1]*1.1): has_collision = False
-
-            if has_collision:
-                # merge these two bboxes into one, then start over:
-                top_left_x = min( this_bbox[left][0], other_bbox[left][0] )
-                top_left_y = min( this_bbox[left][1], other_bbox[left][1] )
-                bottom_right_x = max( this_bbox[right][0], other_bbox[right][0] )
-                bottom_right_y = max( this_bbox[right][1], other_bbox[right][1] )
-
-                new_bbox = ( (top_left_x, top_left_y), (bottom_right_x, bottom_right_y) )
-
-                bbox_list.remove( this_bbox )
-                bbox_list.remove( other_bbox )
-                bbox_list.append( new_bbox )
-
-                # Start over with the new list:
-                return merge_collided_bboxes( bbox_list )
-
-    # When there are no collions between boxes, return that list:
-    return bbox_list
-
-
-def detect_faces( image, haar_cascade, mem_storage ):
-
-    faces = []
-    image_size = cv.GetSize( image )
-
-    #faces = cv.HaarDetectObjects(grayscale, haar_cascade, storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, (20, 20) )
-    #faces = cv.HaarDetectObjects(image, haar_cascade, storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING )
-    #faces = cv.HaarDetectObjects(image, haar_cascade, storage )
-    #faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 16, 16 ) )
-    #faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 4,4 ) )
-    faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( image_size[0]/10, image_size[1]/10) )
-
-    for face in faces:
-        box = face[0]
-        cv.Rectangle(image, ( box[0], box[1] ),
-            ( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
-
-def saveScene(fn, image):
-    cv.SaveImage(fn, image)
-
 
 class Target:
     def __init__(self):
@@ -280,8 +214,8 @@ class Target:
             # This reduces false positives on tiny "sparkles" noise.
             box_areas = []
             for box in bounding_box_list:
-                box_width = box[right][0] - box[left][0]
-                box_height = box[bottom][0] - box[top][0]
+                box_width = box[RIGHT][0] - box[LEFT][0]
+                box_height = box[BOTTOM][0] - box[TOP][0]
                 box_areas.append( box_width * box_height )
 
                 #cv.Rectangle( display_image, box[0], box[1], cv.CV_RGB(255,0,0), 1)
@@ -291,8 +225,8 @@ class Target:
 
             trimmed_box_list = []
             for box in bounding_box_list:
-                box_width = box[right][0] - box[left][0]
-                box_height = box[bottom][0] - box[top][0]
+                box_width = box[RIGHT][0] - box[LEFT][0]
+                box_height = box[BOTTOM][0] - box[TOP][0]
 
                 # Only keep the box if it's not a tiny noise box:
                 if (box_width * box_height) > average_box_area*0.1: trimmed_box_list.append( box )
@@ -301,7 +235,7 @@ class Target:
             #for box in trimmed_box_list:
             #   cv.Rectangle( display_image, box[0], box[1], cv.CV_RGB(0,255,0), 2 )
 
-            bounding_box_list = merge_collided_bboxes( trimmed_box_list )
+            bounding_box_list = util.merge_collided_bboxes( trimmed_box_list )
 
             # Draw the merged box list:
             for box in bounding_box_list:
@@ -375,8 +309,8 @@ class Target:
                 center_points_in_box = []
 
                 for center_point in center_points:
-                    if  center_point[0] < box[right][0] and center_point[0] > box[left][0] and \
-                        center_point[1] < box[bottom][1] and center_point[1] > box[top][1] :
+                    if  center_point[0] < box[RIGHT][0] and center_point[0] > box[LEFT][0] and \
+                        center_point[1] < box[BOTTOM][1] and center_point[1] > box[TOP][1] :
 
                         # This point is within the box.
                         center_points_in_box.append( center_point )
@@ -513,17 +447,13 @@ class Target:
             # For image saving
             if len(bounding_box_list) > 0:
                 if last_scene_clear and time.time() - last_save_time > time_limit:
-                    saveScene(str(time.time()) + ".jpg", display_image)
+                    util.saveScene(str(time.time()) + ".jpg", display_image)
                     last_save_time = time.time()
 
             if len(bounding_box_list) == 0:
                 last_scene_clear = True
             else:
                 last_scene_clear = False
-
-
-
-
 
 
             # Display frame to user
@@ -543,7 +473,7 @@ class Target:
                 cv.PutText( image, "Motion Mask", text_coord, text_font, text_color )
             elif image_name == "faces":
                 # Do face detection
-                detect_faces( camera_image, haar_cascade, mem_storage )
+                util.detect_faces( camera_image, haar_cascade, mem_storage )
                 image = camera_image  # Re-use camera image here
                 cv.PutText( image, "Face Detection", text_coord, text_font, text_color )
 
