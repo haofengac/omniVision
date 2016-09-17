@@ -292,6 +292,10 @@ class Target:
             # within the same "bbox count", average them into a single target.
             #
             # (Any kmeans targets not within a bbox are also kept.)
+
+            """
+            Trimmed center points
+            """
             trimmed_center_points = []
             removed_center_points = []
 
@@ -422,6 +426,9 @@ class Target:
                 cv.Circle(display_image, center_point,  5, cv.CV_RGB(c[0], c[1], c[2]), 3)
 
 
+            """
+            Handling control
+            """
             #print "min_size is: " + str(min_size)
             # Listen for ESC or ENTER key
             c = cv.WaitKey(7) % 0x100
@@ -433,19 +440,6 @@ class Target:
                 image_index = ( image_index + 1 ) % len( image_list )
 
             image_name = image_list[ image_index ]
-
-
-            # For image saving
-            if len(bounding_box_list) > 0:
-                if last_scene_clear and time.time() - last_save_time > time_limit:
-                    util.saveScene(str(time.time()) + ".jpg", display_image)
-                    last_save_time = time.time()
-
-            if len(bounding_box_list) == 0:
-                last_scene_clear = True
-            else:
-                last_scene_clear = False
-
 
             # Display frame to user
             if image_name == "camera":
@@ -468,26 +462,41 @@ class Target:
                 image = camera_image  # Re-use camera image here
                 cv.PutText( image, "Face Detection", text_coord, text_font, text_color )
 
+            """
+            Image saving
+            """
+            # For image saving
+            if len(bounding_box_list) > 0:
+                if last_scene_clear and time.time() - last_save_time > time_limit:
+                    util.saveScene(str(time.time()) + ".jpg", display_image)
+                    last_save_time = time.time()
+
+            if len(bounding_box_list) == 0:
+                last_scene_clear = True
+            else:
+                last_scene_clear = False
+
+            """
+            Display
+            """
             size = cv.GetSize(image)
             large = cv.CreateImage( ( int(size[0] * display_ratio), int(size[1] * display_ratio)), image.depth, image.nChannels)
             cv.Resize(image, large, interpolation=cv2.INTER_CUBIC)
             cv.ShowImage( "Target", large )
 
+            frame_t1 = time.time()
             if self.writer:
                 cv.WriteFrame( self.writer, image );
+            else:
+                # If reading from a file, put in a forced delay:
+                delta_t = frame_t1 - frame_t0
+                if delta_t < ( 1.0 / 15.0 ): time.sleep( ( 1.0 / 15.0 ) - delta_t )
 
             #log_file.flush()
 
             # If only using a camera, then there is no time.sleep() needed,
             # because the camera clips us to 15 fps.  But if reading from a file,
             # we need this to keep the time-based target clipping correct:
-            frame_t1 = time.time()
-
-
-            # If reading from a file, put in a forced delay:
-            if not self.writer:
-                delta_t = frame_t1 - frame_t0
-                if delta_t < ( 1.0 / 15.0 ): time.sleep( ( 1.0 / 15.0 ) - delta_t )
 
         t1 = time.time()
         time_delta = t1 - t0
