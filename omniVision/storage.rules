@@ -1,6 +1,5 @@
 service firebase.storage {
-  // TODO: Change the <STORAGE_BUCKET> placeholder below. e.g. my-project-12345.appspot.com
-  match /b/<STORAGE_BUCKET>/o {
+  match /b/omnivision-a2b18.appspot.com/o {
     match /{userId}/{timeStamp}/{fileName} {
       allow write: if request.auth.uid == userId;
       allow read;
