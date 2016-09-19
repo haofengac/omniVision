@@ -1,3 +1,3 @@
 # omniVision
-![](https://github.com/xanderchf/omniVision/blob/master/omniVision.png =250x250)
+<img src="omniVision.png" alt="Drawing" style="width: 200px; height: 200px;"/>
 A smart surveillance system based on computer vision
