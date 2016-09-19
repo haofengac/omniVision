@@ -88,9 +88,7 @@ class Target:
         # For image saving
         last_scene_clear = False
         time_limit = 2.0
-        face_time_limit = 3.0
         last_save_time = time.time()
-        last_save_face_time = time.time()
         accumulated_scenes = []
 
         # For toggling display:
