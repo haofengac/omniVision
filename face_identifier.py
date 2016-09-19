@@ -88,7 +88,9 @@ class Target:
         # For image saving
         last_scene_clear = False
         time_limit = 2.0
+        face_time_limit = 3.0
         last_save_time = time.time()
+        last_save_face_time = time.time()
         accumulated_scenes = []
 
         # For toggling display:
@@ -412,8 +414,6 @@ class Target:
 
             # For next frame:
             new_entity_num = len(last_frame_entity_list) - len(this_frame_entity_list)
-            if not new_entity_num == 0:
-                print("\n\nFOUND ", new_entity_num, "NEW ENTITIES!")
             last_frame_entity_list = this_frame_entity_list
 
             # Draw the found entities to screen:
@@ -458,7 +458,11 @@ class Target:
                 cv.PutText( image, "Motion Mask", text_coord, text_font, text_color )
             elif image_name == "faces":
                 # Do face detection
-                util.detect_faces( camera_image, haar_cascade, mem_storage )
+                if last_scene_clear and time.time() - last_save_face_time > face_time_limit:
+                    util.detect_capture_faces( camera_image, haar_cascade, mem_storage, True )
+                    last_save_face_time = time.time()
+                else:
+                    util.detect_capture_faces( camera_image, haar_cascade, mem_storage, False )
                 image = camera_image  # Re-use camera image here
                 cv.PutText( image, "Face Detection", text_coord, text_font, text_color )
 
