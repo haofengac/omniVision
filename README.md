@@ -1,4 +1,4 @@
 # omniVision
-<img src="omniVision.png" width="250" height="250" />
+<img src="omniVision.png" width="500" height="500" />
 
 A smart surveillance system based on computer vision
