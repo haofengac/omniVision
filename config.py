@@ -1,6 +1,12 @@
+import cv, cv2
+import time
+
 #
 # BBoxes must be in the format:
 # ( (topleft_x), (topleft_y) ), ( (bottomright_x), (bottomright_y) ) )
+
+import cv, cv2
+
 TOP = 0
 BOTTOM = 1
 LEFT = 0

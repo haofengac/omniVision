@@ -1,4 +1,3 @@
-import cv
 from config import *
 
 TOP = 0
@@ -51,7 +50,7 @@ def merge_collided_bboxes( bbox_list ):
     return bbox_list
 
 
-def detect_faces( image, haar_cascade, mem_storage ):
+def detect_capture_faces( image, haar_cascade, mem_storage, capture ):
 
     faces = []
     image_size = cv.GetSize( image )
@@ -67,6 +66,13 @@ def detect_faces( image, haar_cascade, mem_storage ):
         box = face[0]
         cv.Rectangle(image, ( box[0], box[1] ),
             ( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
+        if capture:
+            cropped = image[ box[1] : box[1] + box[3], box[0] : box[0] + box[2] ]
+            name = "faces/" + str(time.time()) + ".jpg"
+            saveScene(name, cropped)
+
+def detect_faces( image, haar_cascade, mem_storage ):
+    detect_capture_faces( image, haar_cascade, mem_storage, False)
 
 def saveScene(fn, image):
     cv.SaveImage(fn, image)
