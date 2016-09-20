@@ -1,12 +1,15 @@
 #!/usr/bin/env python
-import util
-from config import *
+
+import cv, cv2
 
 from math import *
 from scipy import *
 from scipy.cluster import vq
 import numpy as np
-import time, sys, os, random, hashlib
+import time, sys, os, random, hashlib, heapq
+
+import util
+from config import *
 
 """
 Python Motion Tracker
@@ -19,15 +22,13 @@ class Target:
     def __init__(self):
 
         if len( sys.argv ) > 1:
-            self.capture = cv.CaptureFromFile( sys.argv[1] )
-            frame = cv.QueryFrame(self.capture)
-            frame_size = cv.GetSize(frame)
+            self.capture = cv2.VideoCapture( sys.argv[1] )
         else:
             fps=15
             is_color = True
-            self.capture = cv.CaptureFromCAM(0)
-            cv.SetCaptureProperty( self.capture, cv.CV_CAP_PROP_FRAME_WIDTH, CAPTURE_WIDTH );
-            cv.SetCaptureProperty( self.capture, cv.CV_CAP_PROP_FRAME_HEIGHT, CAPTURE_HEIGHT );
+            self.capture = cv2.VideoCapture(0)
+            self.capture.set( cv.CV_CAP_PROP_FRAME_WIDTH, CAPTURE_WIDTH );
+            self.capture.set( cv.CV_CAP_PROP_FRAME_HEIGHT, CAPTURE_HEIGHT );
         
         #self.writer = cv.CreateVideoWriter("/dev/shm/test1.mp4", cv.CV_FOURCC('D', 'I', 'V', 'X'), fps, frame_size, is_color )
         #self.writer = cv.CreateVideoWriter("test2.mpg", cv.CV_FOURCC('P', 'I', 'M', '1'), fps, frame_size, is_color )
@@ -43,9 +44,9 @@ class Target:
         # 320x240 15fpx in DIVX is about 4 gigs per day.
 
         self.writer = None
-        frame = cv.QueryFrame(self.capture)
-        frame_size = cv.GetSize(frame)
-        cv.NamedWindow("Target", 1)
+        _, frame = self.capture.retrieve()
+        frame_size = (frame.shape[0], frame.shape[1])
+        cv2.namedWindow("Target", 1)
         #cv.NamedWindow("Target2", 1)
 
 
@@ -54,19 +55,18 @@ class Target:
         #log_file_name = "tracker_output.log"
         #log_file = file( log_file_name, 'a' )
 
-        frame = cv.QueryFrame( self.capture )
-        frame_size = cv.GetSize( frame )
+        _, frame = self.capture.read()
 
         # Capture the first frame from webcam for image properties
-        display_image = cv.QueryFrame( self.capture )
+        display_image = frame.copy()
         # Greyscale image, thresholded to create the motion mask:
-        grey_image = cv.CreateImage( cv.GetSize(frame), cv.IPL_DEPTH_8U, 1 )
+        grey_image = np.zeros((frame.shape[0], frame.shape[1]), uint8)
         # The RunningAvg() function requires a 32-bit or 64-bit image...
-        running_average_image = cv.CreateImage( cv.GetSize(frame), cv.IPL_DEPTH_32F, 3 )
+        running_average_image = np.zeros((frame.shape[0], frame.shape[1], 3), float32)
         # ...but the AbsDiff() function requires matching image depths:
-        running_average_in_display_color_depth = cv.CloneImage( display_image )
+        running_average_in_display_color_depth = running_average_image.copy()
         # The difference between the running average and the current frame:
-        difference = cv.CloneImage( display_image )
+        difference = running_average_image.copy()
 
         # RAM used by FindContours():
         mem_storage = cv.CreateMemStorage(0)
@@ -88,9 +88,7 @@ class Target:
         # For image saving
         last_scene_clear = False
         time_limit = 2.0
-        face_time_limit = 3.0
         last_save_time = time.time()
-        last_save_face_time = time.time()
         accumulated_scenes = []
 
         # For toggling display:
@@ -98,20 +96,20 @@ class Target:
         image_index = 0   # Index into image_list
 
         # Prep for text drawing:
-        text_font = cv.InitFont(cv.CV_FONT_HERSHEY_COMPLEX, .5, .5, 0.0, 1, cv.CV_AA )
+        text_font = cv2.FONT_HERSHEY_SIMPLEX
         text_coord = ( 5, 15 )
-        text_color = cv.CV_RGB(255,255,255)
+        text_color = (255,255,255)
 
         ###############################
         ### HaarCascade Selection
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_default.xml' )
-        haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_alt.xml' )
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_alt2.xml' )
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_mcs_mouth.xml' )
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_eye.xml' )
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_alt_tree.xml' )
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_upperbody.xml' )
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_profileface.xml' )
+        #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_frontalface_default.xml' )
+        #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_frontalface_alt.xml' )
+        #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_frontalface_alt2.xml' )
+        #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_mcs_mouth.xml' )
+        haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_eye.xml' )
+        #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_frontalface_alt_tree.xml' )
+        #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_upperbody.xml' )
+        #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_profileface.xml' )
 
         # Set this to the max number of targets to look for (passed to k-means):
         max_targets = 3
@@ -125,41 +123,41 @@ class Target:
             Preprocessing image
             """
             # Capture frame from webcam
-            camera_image = cv.QueryFrame( self.capture )
+            _, camera_image = self.capture.retrieve()
             frame_count += 1
             frame_t0 = time.time()
 
             # Create an image with interactive feedback:
-            display_image = cv.CloneImage( camera_image )
+            display_image = camera_image.copy()
 
             # Create a working "color image" to modify / blur
-            color_image = cv.CloneImage( display_image )
+            color_image = camera_image.copy().astype(float32)
 
             # Smooth to get rid of false positives
-            cv.Smooth( color_image, color_image, cv.CV_GAUSSIAN, 19, 0 )
+            cv2.GaussianBlur( color_image, (5,5), 0)
 
             # Use the Running Average as the static background
             # a = 0.020 leaves artifacts lingering way too long.
             # a = 0.320 works well at 320x240, 15fps.  (1/a is roughly num frames.)
-            cv.RunningAvg( color_image, running_average_image, 0.320, None )
+            cv2.accumulateWeighted( color_image, running_average_image, 0.320, None )
 
             # Convert the scale of the moving average.
-            cv.ConvertScale( running_average_image, running_average_in_display_color_depth, 1.0, 0.0 )
+            running_average_in_display_color_depth = running_average_image.copy()
 
             # Subtract the current frame from the moving average.
-            cv.AbsDiff( color_image, running_average_in_display_color_depth, difference )
+            cv2.absdiff( color_image, running_average_in_display_color_depth, difference )
 
             # Convert the image to greyscale.
-            cv.CvtColor( difference, grey_image, cv.CV_RGB2GRAY )
+            grey_image = cv2.cvtColor( difference, cv2.COLOR_BGR2GRAY ).astype(uint8)
 
             # Threshold the image to a black and white motion mask:
-            cv.Threshold( grey_image, grey_image, 2, 255, cv.CV_THRESH_BINARY )
+            cv2.threshold( grey_image, 2, 255, cv2.THRESH_BINARY )
             # Smooth and threshold again to eliminate "sparkles"
-            cv.Smooth( grey_image, grey_image, cv.CV_GAUSSIAN, 19, 0 )
-            cv.Threshold( grey_image, grey_image, 240, 255, cv.CV_THRESH_BINARY )
+            cv2.GaussianBlur( color_image, (5,5), 0)
+            cv2.threshold( grey_image, 240, 255, cv2.THRESH_BINARY )
 
-            grey_image_as_array = np.asarray( cv.GetMat( grey_image ) )
-            non_black_coords_array = np.where( grey_image_as_array > 3 )
+            grey_image_as_array = grey_image
+            non_black_coords_array = np.where( grey_image > 3 )
             # Convert from np.where()'s two separate lists to one list of (x, y) tuples:
             non_black_coords_array = zip( non_black_coords_array[1], non_black_coords_array[0] )
 
@@ -167,30 +165,27 @@ class Target:
             bounding_box_list = []
 
             # Now calculate movements using the white pixels as "motion" data
-            contour = cv.FindContours( grey_image, mem_storage, cv.CV_RETR_CCOMP, cv.CV_CHAIN_APPROX_SIMPLE )
+            contours, _ = cv2.findContours( grey_image, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE )
 
             """
             Finding contours and bounding boxes
             """
-            while contour:
-
-                bounding_rect = cv.BoundingRect( list(contour) )
+            for contour in contours:
+                bounding_rect = cv2.boundingRect( contour )
                 point1 = ( bounding_rect[0], bounding_rect[1] )
                 point2 = ( bounding_rect[0] + bounding_rect[2], bounding_rect[1] + bounding_rect[3] )
 
                 bounding_box_list.append( ( point1, point2 ) )
-                polygon_points = cv.ApproxPoly( list(contour), mem_storage, cv.CV_POLY_APPROX_DP )
+                polygon_points = cv2.approxPolyDP( contour, 0.1 * cv2.arcLength(contour, True), True )
 
                 # To track polygon points only (instead of every pixel):
                 #points += list(polygon_points)
 
                 # Draw the contours:
                 ###cv.DrawContours(color_image, contour, cv.CV_RGB(255,0,0), cv.CV_RGB(0,255,0), levels, 3, 0, (0,0) )
-                cv.FillPoly( grey_image, [ list(polygon_points), ], cv.CV_RGB(255,255,255), 0, 0 )
-                cv.PolyLine( display_image, [ polygon_points, ], 0, cv.CV_RGB(255,255,255), 1, 0, 0 )
+                cv2.fillPoly( grey_image, polygon_points, (255,255,255), 0, 0 )
+                cv2.polylines( display_image, [ polygon_points, ], 0, (255,255,255), 1, 0, 0 )
                 #cv.Rectangle( display_image, point1, point2, cv.CV_RGB(120,120,120), 1)
-
-                contour = contour.h_next()
 
 
             # Find the average size of the bbox (targets), then
@@ -227,7 +222,7 @@ class Target:
 
             # Draw the merged box list:
             for box in bounding_box_list:
-                cv.Rectangle( display_image, box[0], box[1], cv.CV_RGB(0,255,0), 1 )
+                cv2.rectangle( display_image, box[0], box[1], cv.CV_RGB(0,255,0), 1 )
 
 
             # For obj counting
@@ -414,16 +409,18 @@ class Target:
 
             # For next frame:
             new_entity_num = len(last_frame_entity_list) - len(this_frame_entity_list)
+            if not new_entity_num == 0:
+                print("\n\nFOUND ", new_entity_num, "NEW ENTITIES!")
             last_frame_entity_list = this_frame_entity_list
 
             # Draw the found entities to screen:
             for entity in this_frame_entity_list:
                 center_point = entity[3]
                 c = entity[1]  # RGB color tuple
-                cv.Circle(display_image, center_point, 20, cv.CV_RGB(c[0], c[1], c[2]), 1)
-                cv.Circle(display_image, center_point, 15, cv.CV_RGB(c[0], c[1], c[2]), 1)
-                cv.Circle(display_image, center_point, 10, cv.CV_RGB(c[0], c[1], c[2]), 2)
-                cv.Circle(display_image, center_point,  5, cv.CV_RGB(c[0], c[1], c[2]), 3)
+                cv2.circle(display_image, center_point, 20, cv.CV_RGB(c[0], c[1], c[2]), 1)
+                cv2.circle(display_image, center_point, 15, cv.CV_RGB(c[0], c[1], c[2]), 1)
+                cv2.circle(display_image, center_point, 10, cv.CV_RGB(c[0], c[1], c[2]), 2)
+                cv2.circle(display_image, center_point,  5, cv.CV_RGB(c[0], c[1], c[2]), 3)
 
 
             """
@@ -444,27 +441,23 @@ class Target:
             # Display frame to user
             if image_name == "camera":
                 image = camera_image
-                cv.PutText( image, "Camera (Normal)", text_coord, text_font, text_color )
+                cv2.putText( image, "Camera (Normal)", text_coord, text_font, 1, text_color )
             elif image_name == "difference":
                 image = difference
-                cv.PutText( image, "Difference Image", text_coord, text_font, text_color )
+                cv2.putText( image, "Difference Image", text_coord, text_font, 1, text_color )
             elif image_name == "display":
                 image = display_image
-                cv.PutText( image, "Targets (w/AABBs and contours)", text_coord, text_font, text_color )
+                cv2.putText( image, "Targets (w/AABBs and contours)", text_coord, text_font, 1, text_color )
             elif image_name == "threshold":
                 # Convert the image to color.
-                cv.CvtColor( grey_image, display_image, cv.CV_GRAY2RGB )
+                cv2.cvtColor( grey_image, display_image, cv.CV_GRAY2RGB )
                 image = display_image  # Re-use display image here
-                cv.PutText( image, "Motion Mask", text_coord, text_font, text_color )
+                cv2.putText( image, "Motion Mask", text_coord, text_font, 1.0, text_color )
             elif image_name == "faces":
                 # Do face detection
-                if last_scene_clear and time.time() - last_save_face_time > face_time_limit:
-                    util.detect_capture_faces( camera_image, haar_cascade, mem_storage, True )
-                    last_save_face_time = time.time()
-                else:
-                    util.detect_capture_faces( camera_image, haar_cascade, mem_storage, False )
+                util.detect_faces( camera_image, haar_cascade, mem_storage )
                 image = camera_image  # Re-use camera image here
-                cv.PutText( image, "Face Detection", text_coord, text_font, text_color )
+                cv2.putText( image, "Face Detection", text_coord, text_font, 1, text_color )
 
             """
             Image saving
@@ -483,10 +476,10 @@ class Target:
             """
             Display
             """
-            size = cv.GetSize(image)
-            large = cv.CreateImage( ( int(size[0] * display_ratio), int(size[1] * display_ratio)), image.depth, image.nChannels)
-            cv.Resize(image, large, interpolation=cv2.INTER_CUBIC)
-            cv.ShowImage( "Target", large )
+            size = image.shape
+            large = np.zeros( ( int(size[0] * display_ratio), int(size[1] * display_ratio), int(size[2] * display_ratio)), float32 )
+            large = cv2.resize(image, (0,0), fx=display_ratio, fy=display_ratio, interpolation=cv2.INTER_CUBIC)
+            cv2.imshow( "Target", large )
 
             frame_t1 = time.time()
             if self.writer:
