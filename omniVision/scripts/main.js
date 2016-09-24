@@ -112,7 +112,6 @@ OmniVision.prototype.setImageUrl = function(imageUri, imgElement) {
   }
 };
 
-
 // Saves a new message containing an image URI in Firebase.
 // This first saves the image in Firebase storage.
 OmniVision.prototype.saveImageMessage = function(event) {
