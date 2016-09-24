@@ -177,7 +177,7 @@ main, #messages-card {
   }
   #user-container {
     top: 72px;
-    background-color: rgb(3,155,229);
+    background-color: rgb(3,155,229); /*rgb(0,255,255)*/
     height: 38px;
     padding-top: 3px;
     padding-right: 2px;
