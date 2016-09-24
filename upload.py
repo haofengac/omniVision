@@ -20,3 +20,8 @@ class TransferData:
     def get_file_url(self, fn):
         meta = self.client.share(fn, short_url=False)
         return meta['url'][:meta['url'].rfind('?')+1] + 'raw=1'
+
+    def list_all_files(self, drct):
+        metadata = self.client.metadata(drct)
+        return [content['path'].split('/')[-1] for content in metadata['contents']]
+
