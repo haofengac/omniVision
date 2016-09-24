@@ -25,10 +25,10 @@ class Target:
         else:
             fps=15
             is_color = True
-            self.capture = cv.CaptureFromCAM(0)
+            self.capture = cv.CaptureFromCAM(1)
             cv.SetCaptureProperty( self.capture, cv.CV_CAP_PROP_FRAME_WIDTH, CAPTURE_WIDTH );
             cv.SetCaptureProperty( self.capture, cv.CV_CAP_PROP_FRAME_HEIGHT, CAPTURE_HEIGHT );
-        
+
         #self.writer = cv.CreateVideoWriter("/dev/shm/test1.mp4", cv.CV_FOURCC('D', 'I', 'V', 'X'), fps, frame_size, is_color )
         #self.writer = cv.CreateVideoWriter("test2.mpg", cv.CV_FOURCC('P', 'I', 'M', '1'), fps, frame_size, is_color )
         #self.writer = cv.CreateVideoWriter("test3.mp4", cv.CV_FOURCC('D', 'I', 'V', 'X'), fps, cv.GetSize(frame), is_color )
@@ -83,7 +83,7 @@ class Target:
         k_or_guess = 1
         frame_count=0
         codebook=[]
-        last_frame_entity_list = []    
+        last_frame_entity_list = []
 
         # For image saving
         last_scene_clear = False
