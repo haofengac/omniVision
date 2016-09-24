@@ -14,7 +14,6 @@ while True:
 
     # read file names from the directory
     files = [f for f in listdir(image_dir) if isfile(join(image_dir, f)) and not f.startswith('.')]
-    print files
 
     # initiate data transfer with dropbox
     transferData = TransferData()
