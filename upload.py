@@ -16,3 +16,6 @@ class TransferData:
             self.dbx.files_upload(f, file_to)
 
         return self.client.share(file_to, short_url=False)
+
+    def get_file_meta(self, fn):
+        return self.dbx.files_get_metadata(fn).server_modified
