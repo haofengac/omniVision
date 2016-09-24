@@ -51,24 +51,21 @@ def merge_collided_bboxes( bbox_list ):
                 return merge_collided_bboxes( bbox_list )
 
     # When there are no collions between boxes, return that list:
-    print("Finally OUT!!!")
     return bbox_list
 
 
-def detect_capture_faces( image, haar_cascade, mem_storage, capture ):
+def detect_capture_faces( image, haar_cascade, face_dict, capture ):
 
     faces = []
     image_size = (image.shape[0], image.shape[1])
 
-    #faces = cv.HaarDetectObjects(grayscale, haar_cascade, storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, (20, 20) )
-    #faces = cv.HaarDetectObjects(image, haar_cascade, storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING )
-    #faces = cv.HaarDetectObjects(image, haar_cascade, storage )
-    #faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 16, 16 ) )
-    #faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 4,4 ) )
+    #faces = haar_cascade.detectMultiScale(grayscale, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, (20, 20) )
+    #faces = haar_cascade.detectMultiScale(image, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING )
+    #faces = haar_cascade.detectMultiScale(image, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 16, 16 ) )
+    #faces = haar_cascade.detectMultiScale(image, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 4,4 ) )
     faces = haar_cascade.detectMultiScale(image, 1.2, 2, cv2.cv.CV_HAAR_SCALE_IMAGE, ( image_size[0]/10, image_size[1]/10) )
 
     for box in faces:
-        print box
         cv2.rectangle(image, ( box[0], box[1] ),
             ( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
         if capture:
@@ -77,4 +74,19 @@ def detect_capture_faces( image, haar_cascade, mem_storage, capture ):
             cv2.imwrite(name, cropped)
 
 def detect_faces( image, haar_cascade, mem_storage ):
-    detect_capture_faces( image, haar_cascade, mem_storage, False)
+    faces = []
+    image_size = cv.GetSize( image )
+
+    #faces = cv.HaarDetectObjects(grayscale, haar_cascade, storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, (20, 20) )
+    #faces = cv.HaarDetectObjects(image, haar_cascade, storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING )
+    #faces = cv.HaarDetectObjects(image, haar_cascade, storage )
+    #faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 16, 16 ) )
+    #faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 4,4 ) )
+    faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( image_size[0]/10, image_size[1]/10) )
+
+    for face in faces:
+        box = face[0]
+        cv.Rectangle(image, ( box[0], box[1] ),
+            ( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
+
+# def train_recognizer():

@@ -49,6 +49,26 @@ class Target:
         cv2.namedWindow("Target", 1)
         #cv.NamedWindow("Target2", 1)
 
+    def detect_capture_faces( image, haar_cascade, face_dict, capture ):
+
+        faces = []
+        image_size = (image.shape[0], image.shape[1])
+
+        #faces = haar_cascade.detectMultiScale(grayscale, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, (20, 20) )
+        #faces = haar_cascade.detectMultiScale(image, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING )
+        #faces = haar_cascade.detectMultiScale(image, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 16, 16 ) )
+        #faces = haar_cascade.detectMultiScale(image, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 4,4 ) )
+        faces = haar_cascade.detectMultiScale(image, 1.2, 2, cv2.cv.CV_HAAR_SCALE_IMAGE, ( image_size[0]/10, image_size[1]/10) )
+
+        for box in faces:
+            for f in face_dict.keys():
+
+            cv2.rectangle(image, ( box[0], box[1] ),
+                ( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
+            if capture:
+                cropped = image[ box[1] : box[1] + box[3], box[0] : box[0] + box[2] ]
+                name = "faces/" + str(time.time()) + ".jpg"
+                cv2.imwrite(name, cropped)
 
     def run(self):
         # Initialize
@@ -68,9 +88,6 @@ class Target:
         # The difference between the running average and the current frame:
         difference = running_average_image.copy()
 
-        # RAM used by FindContours():
-        mem_storage = cv.CreateMemStorage(0)
-
         # For target counting
         target_count = 1
         last_target_count = 1
@@ -83,7 +100,7 @@ class Target:
         k_or_guess = 1
         frame_count=0
         codebook=[]
-        last_frame_entity_list = []    
+        last_frame_entity_list = []
 
         # For image saving
         last_scene_clear = False
@@ -101,6 +118,16 @@ class Target:
         text_font = cv2.FONT_HERSHEY_SIMPLEX
         text_coord = ( 5, 15 )
         text_color = (255,255,255)
+
+        # For face recognition
+        """
+        Dictionary to store the recognition information about the face.
+        { generated_name : (alias, image_list) }
+        """
+        face_dict = {}
+
+        # Use the LBPH Face Recognizer for face recognition
+        recognizer = cv2.createLBPHFaceRecognizer()
 
         ###############################
         ### HaarCascade Selection
@@ -167,8 +194,9 @@ class Target:
             bounding_box_list = []
 
             # Now calculate movements using the white pixels as "motion" data
-            contours, _ = cv2.findContours( grey_image, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE )
-
+            _,thresh = cv2.threshold(grey_image,127,255,0)
+            _,contours = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+            print contours
             """
             Finding contours and bounding boxes
             """
@@ -411,9 +439,9 @@ class Target:
                     this_frame_entity_list.append( entity )
 
             # For next frame:
-            new_entity_num = len(last_frame_entity_list) - len(this_frame_entity_list)
+            new_entity_num = len(this_frame_entity_list) - len(last_frame_entity_list)
             if not new_entity_num == 0:
-                print("\n\nFOUND ", new_entity_num, "NEW ENTITIES!")
+                print "FOUND ", new_entity_num, "NEW ENTITIES!"
             last_frame_entity_list = this_frame_entity_list
 
             # Draw the found entities to screen:
@@ -445,19 +473,16 @@ class Target:
             if image_name == "camera":
                 image = camera_image
                 cv2.putText( image, "Camera (Normal)", text_coord, text_font, 1, text_color )
-            elif image_name == "difference":
-                image = difference
-                cv2.putText( image, "Difference Image", text_coord, text_font, 1, text_color )
             elif image_name == "display":
                 image = display_image
                 cv2.putText( image, "Targets (w/AABBs and contours)", text_coord, text_font, 1, text_color )
             elif image_name == "faces":
                 # Do face detection
                 if last_scene_clear and time.time() - last_save_face_time > face_time_limit:
-                    util.detect_capture_faces( camera_image, haar_cascade, mem_storage, True )
+                    util.detect_capture_faces( camera_image, haar_cascade, True )
                     last_save_face_time = time.time()
                 else:
-                    util.detect_capture_faces( camera_image, haar_cascade, mem_storage, False )
+                    detect_capture_faces( camera_image, haar_cascade, face_dict, False )
                 image = camera_image  # Re-use camera image here
                 cv2.putText( image, "Face Detection", text_coord, text_font, 1, text_color )
 
@@ -467,7 +492,7 @@ class Target:
             # For image saving
             if len(bounding_box_list) > 0:
                 if last_scene_clear and time.time() - last_save_time > time_limit:
-                    cv2.imwrite(str(time.time()) + ".jpg", display_image)
+                    cv2.imwrite(hashlib.md5( str(time.time()) ).hexdigest()[:6] + ".jpg", display_image)
                     last_save_time = time.time()
 
             if len(bounding_box_list) == 0:

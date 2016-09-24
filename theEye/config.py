@@ -6,6 +6,7 @@ import time
 # ( (topleft_x), (topleft_y) ), ( (bottomright_x), (bottomright_y) ) )
 
 import cv, cv2
+import thread
 
 TOP = 0
 BOTTOM = 1

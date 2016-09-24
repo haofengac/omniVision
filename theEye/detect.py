@@ -53,7 +53,6 @@ class Target:
         # Initialize
         #log_file_name = "tracker_output.log"
         #log_file = file( log_file_name, 'a' )
-
         frame = cv.QueryFrame( self.capture )
         frame_size = cv.GetSize( frame )
 
