@@ -1,22 +1,32 @@
 from upload import TransferData
 import urllib2
+from os import listdir, remove
+from os.path import isfile, join
+from time import sleep
 
-transferData = TransferData()
+# macros for the script
+image_dir = 'data'
+dropbox_dir = '/omniVision'
+loop_frequency = 0.5
+remove_uploaded_file = True
 
-file_from = 'omniVision/images/log.png' # local relative path for the file
-file_to = '/omniVision.png'  # The full path on Dropbox to upload the file to, including the file name
+while True:
 
-# API v2
+    # read file names from the directory
+    files = [f for f in listdir(image_dir) if isfile(join(image_dir, f)) and not f.startswith('.')]
+    print files
 
-# upload files
-transferData.upload_file(file_from, file_to)
-# get file time stamp
-time = transferData.get_file_time(file_to)
+    # initiate data transfer with dropbox
+    transferData = TransferData()
 
-url = transferData.get_file_url(file_to)
+    # API v2
+    # upload files
+    for fn in files:
+        transferData.upload_file(join(image_dir, fn), join(dropbox_dir, fn))
+        print "Successfully uploaded " + fn
 
-response = urllib2.urlopen(url)
-page_source = response.read()
+        print " Deleting file..."
+        if remove_uploaded_file:
+            remove(join(image_dir, fn))
 
-print page_source
-
+    sleep(loop_frequency)
