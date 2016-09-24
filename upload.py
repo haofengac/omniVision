@@ -15,7 +15,7 @@ class TransferData:
         with open(file_from, 'rb') as f:
             self.dbx.files_upload(f, file_to)
 
-        print self.client.share('/omniVision.png', short_url=False)
+        return self.client.share('/omniVision.png', short_url=False)
 
 def main():
     access_token = 'rDTXhwIRvIAAAAAAAAAACA04mgp3sK5gF05qTBk3KtbgMyScHMgfeLen1b_BLkde'
