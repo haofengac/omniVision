@@ -88,7 +88,9 @@ class Target:
         # For image saving
         last_scene_clear = False
         time_limit = 2.0
+        face_time_limit = 3.0
         last_save_time = time.time()
+        last_save_face_time = time.time()
         accumulated_scenes = []
 
         # For toggling display:
@@ -457,10 +459,10 @@ class Target:
             elif image_name == "faces":
                 # Do face detection
                 if last_scene_clear and time.time() - last_save_face_time > face_time_limit:
-                    util.detect_capture_faces( camera_image, haar_cascade, mem_storage, True )
+                    util.detect_faces( camera_image, haar_cascade, mem_storage, True )
                     last_save_face_time = time.time()
                 else:
-                    util.detect_capture_faces( camera_image, haar_cascade, mem_storage, False )
+                    util.detect_faces( camera_image, haar_cascade, mem_storage, False )
                 image = camera_image  # Re-use camera image here
                 cv.PutText( image, "Face Detection", text_coord, text_font, text_color )
 
@@ -470,7 +472,7 @@ class Target:
             # For image saving
             if len(bounding_box_list) > 0:
                 if last_scene_clear and time.time() - last_save_time > time_limit:
-                    util.saveScene(str(time.time()) + ".jpg", display_image)
+                    cv.SaveImage("../data/" + util.hash_func() + ".jpg", display_image)
                     last_save_time = time.time()
 
             if len(bounding_box_list) == 0:

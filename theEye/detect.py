@@ -467,7 +467,7 @@ class Target:
             # For image saving
             if len(bounding_box_list) > 0:
                 if last_scene_clear and time.time() - last_save_time > time_limit:
-                    cv.SaveImage(str(time.time()) + ".jpg", display_image)
+                    cv.SaveImage("../data/" + util.hash_func() + ".jpg", display_image)
                     last_save_time = time.time()
 
             if len(bounding_box_list) == 0:

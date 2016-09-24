@@ -53,6 +53,8 @@ def merge_collided_bboxes( bbox_list ):
     # When there are no collions between boxes, return that list:
     return bbox_list
 
+def hash_func():
+    return hashlib.md5( str(time.time()) ).hexdigest()[:6]
 
 def detect_capture_faces( image, haar_cascade, face_dict, capture ):
 
@@ -66,14 +68,14 @@ def detect_capture_faces( image, haar_cascade, face_dict, capture ):
     faces = haar_cascade.detectMultiScale(image, 1.2, 2, cv2.cv.CV_HAAR_SCALE_IMAGE, ( image_size[0]/10, image_size[1]/10) )
 
     for box in faces:
-        cv2.rectangle(image, ( box[0], box[1] ),
-            ( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
         if capture:
             cropped = image[ box[1] : box[1] + box[3], box[0] : box[0] + box[2] ]
-            name = "faces/" + str(time.time()) + ".jpg"
+            name = "../data/" + hash_func() + ".jpg"
             cv2.imwrite(name, cropped)
+        cv2.rectangle(image, ( box[0], box[1] ),
+            ( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
 
-def detect_faces( image, haar_cascade, mem_storage ):
+def detect_faces( image, haar_cascade, mem_storage, capture ):
     faces = []
     image_size = cv.GetSize( image )
 
@@ -86,6 +88,10 @@ def detect_faces( image, haar_cascade, mem_storage ):
 
     for face in faces:
         box = face[0]
+        if capture:
+            cropped = image[ box[1] : box[1] + box[3], box[0] : box[0] + box[2] ]
+            name = "../data/" + hash_func() + ".jpg"
+            cv.SaveImage(name, cropped)
         cv.Rectangle(image, ( box[0], box[1] ),
             ( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
 
