@@ -60,7 +60,7 @@ class Target:
         # Capture the first frame from webcam for image properties
         display_image = frame.copy()
         # Greyscale image, thresholded to create the motion mask:
-        grey_image = np.zeros((frame.shape[0], frame.shape[1]), uint8)
+        grey_image = np.zeros((frame.shape[0], frame.shape[1], 1), uint8)
         # The RunningAvg() function requires a 32-bit or 64-bit image...
         running_average_image = np.zeros((frame.shape[0], frame.shape[1], 3), float32)
         # ...but the AbsDiff() function requires matching image depths:
@@ -87,8 +87,10 @@ class Target:
 
         # For image saving
         last_scene_clear = False
+        face_time_limit = 3.0
         time_limit = 2.0
         last_save_time = time.time()
+        last_save_face_time = time.time()
         accumulated_scenes = []
 
         # For toggling display:
@@ -103,10 +105,10 @@ class Target:
         ###############################
         ### HaarCascade Selection
         #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_frontalface_default.xml' )
-        #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_frontalface_alt.xml' )
+        haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_frontalface_alt.xml' )
         #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_frontalface_alt2.xml' )
         #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_mcs_mouth.xml' )
-        haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_eye.xml' )
+        #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_eye.xml' )
         #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_frontalface_alt_tree.xml' )
         #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_upperbody.xml' )
         #haar_cascade = cv2.CascadeClassifier( 'haarcascades/haarcascade_profileface.xml' )
@@ -212,7 +214,8 @@ class Target:
                 box_height = box[BOTTOM][0] - box[TOP][0]
 
                 # Only keep the box if it's not a tiny noise box:
-                if (box_width * box_height) > average_box_area*0.1: trimmed_box_list.append( box )
+                if (box_width * box_height) > average_box_area*0.1 and average_box_area > 100: 
+                    trimmed_box_list.append( box )
 
             # Draw the trimmed box list:
             #for box in trimmed_box_list:
@@ -448,14 +451,13 @@ class Target:
             elif image_name == "display":
                 image = display_image
                 cv2.putText( image, "Targets (w/AABBs and contours)", text_coord, text_font, 1, text_color )
-            elif image_name == "threshold":
-                # Convert the image to color.
-                cv2.cvtColor( grey_image, display_image, cv.CV_GRAY2RGB )
-                image = display_image  # Re-use display image here
-                cv2.putText( image, "Motion Mask", text_coord, text_font, 1.0, text_color )
             elif image_name == "faces":
                 # Do face detection
-                util.detect_faces( camera_image, haar_cascade, mem_storage )
+                if last_scene_clear and time.time() - last_save_face_time > face_time_limit:
+                    util.detect_capture_faces( camera_image, haar_cascade, mem_storage, True )
+                    last_save_face_time = time.time()
+                else:
+                    util.detect_capture_faces( camera_image, haar_cascade, mem_storage, False )
                 image = camera_image  # Re-use camera image here
                 cv2.putText( image, "Face Detection", text_coord, text_font, 1, text_color )
 
@@ -465,7 +467,7 @@ class Target:
             # For image saving
             if len(bounding_box_list) > 0:
                 if last_scene_clear and time.time() - last_save_time > time_limit:
-                    util.saveScene(str(time.time()) + ".jpg", display_image)
+                    cv2.imwrite(str(time.time()) + ".jpg", display_image)
                     last_save_time = time.time()
 
             if len(bounding_box_list) == 0:
