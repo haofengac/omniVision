@@ -112,23 +112,10 @@ OmniVision.prototype.setImageUrl = function(imageUri, imgElement) {
   }
 };
 
-// Test Image upload
-OmniVision.prototype.uploadImage = function() {
-  var storageRef = this.storage.ref();
-
-  // Create file metadata including the content type
-  var metadata = {
-    contentType: 'image/jpeg',
-  };
-
-  // Upload the file and metadata
-  var uploadTask = storageRef.child('test.jpg').put(file, metadata);
-};
 
 // Saves a new message containing an image URI in Firebase.
 // This first saves the image in Firebase storage.
 OmniVision.prototype.saveImageMessage = function(event) {
-  this.uploadImage();
 
   var file = event.target.files[0];
 
