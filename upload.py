@@ -11,11 +11,12 @@ class TransferData:
     def upload_file(self, file_from, file_to):
         """upload a file to Dropbox using API v2
         """
-
         with open(file_from, 'rb') as f:
             self.dbx.files_upload(f, file_to)
 
-        return self.client.share(file_to, short_url=False)
-
-    def get_file_meta(self, fn):
+    def get_file_time(self, fn):
         return self.dbx.files_get_metadata(fn).server_modified
+
+    def get_file_url(self, fn):
+        meta = self.client.share(fn, short_url=False)
+        return meta['url'][:meta['url'].rfind('?')+1] + 'raw=1'
