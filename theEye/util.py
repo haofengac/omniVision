@@ -6,6 +6,28 @@ LEFT = 0
 RIGHT = 1
 display_ratio = 2.5
 
+class face_info:
+    def __init__(self):
+        self.untracked = 0
+        self.info = {}
+        self.size = 0
+
+    def add_face(self, img, name):
+        if self.info.get(name) == None:
+            self.info[name] = img
+        else:
+            self.info[name] += img
+
+        if self.size <= 10:
+            self.untracked += 1
+            self.size += 1
+            return True
+        return False
+
+    def need_train(self):
+        if self.untracked >= 10:
+            return True
+
 def merge_collided_bboxes( bbox_list ):
     # For every bbox...
     for this_bbox in bbox_list:
@@ -75,8 +97,7 @@ def detect_capture_faces( image, haar_cascade, face_dict, capture ):
         cv2.rectangle(image, ( box[0], box[1] ),
             ( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
 
-def detect_faces( image, haar_cascade, mem_storage, capture ):
-    faces = []
+def detect_faces( image, haar_cascade, mem_storage, face_list, recognizer, capture ):
     image_size = cv.GetSize( image )
 
     #faces = cv.HaarDetectObjects(grayscale, haar_cascade, storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, (20, 20) )
@@ -89,10 +110,23 @@ def detect_faces( image, haar_cascade, mem_storage, capture ):
     for face in faces:
         box = face[0]
         if capture:
-            cropped = image[ box[1] : box[1] + box[3], box[0] : box[0] + box[2] ]
-            name = "../data/" + hash_func() + ".jpg"
-            cv.SaveImage(name, cropped)
+            cropped = np.asarray(image[:,:])
+            out = cropped[ box[1] : box[1] + box[3], box[0] : box[0] + box[2] ]
+            predicted, conf = recognizer.predict(out)
+            # name = "../data/" + hash_func() + ".jpg"
+            # cv2.imwrite(name, out)
         cv.Rectangle(image, ( box[0], box[1] ),
             ( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
 
-# def train_recognizer():
+    if face_list.need_train():
+        face_list.untracked = 0
+        t = threading.Thread(target = train_recognizer, args = (face_list, recognizer) )
+
+def train_recognizer(face_list, recognizer):
+    images = []
+    labels = []
+    for f in face_list:
+        for img in f:
+            images += [img]
+            labels += [f]
+    recognizer.train(images, labels)

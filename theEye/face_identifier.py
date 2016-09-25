@@ -25,7 +25,7 @@ class Target:
         else:
             fps=15
             is_color = True
-            self.capture = cv.CaptureFromCAM(1)
+            self.capture = cv.CaptureFromCAM(0)
             cv.SetCaptureProperty( self.capture, cv.CV_CAP_PROP_FRAME_WIDTH, CAPTURE_WIDTH );
             cv.SetCaptureProperty( self.capture, cv.CV_CAP_PROP_FRAME_HEIGHT, CAPTURE_HEIGHT );
 
@@ -43,10 +43,79 @@ class Target:
         # 320x240 15fpx in DIVX is about 4 gigs per day.
 
         self.writer = None
+        self.face_list = util.face_info()
         frame = cv.QueryFrame(self.capture)
+        print(type(frame))
         frame_size = cv.GetSize(frame)
         cv.NamedWindow("Target", 1)
         #cv.NamedWindow("Target2", 1)
+        face_last_frame = {}
+
+
+    def detect_faces( self, image, mem_storage, recognizer, capture ):
+        image_size = cv.GetSize( image )
+        face_list = self.face_list
+
+        ###############################
+        ### HaarCascade Selection
+        #haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_default.xml' )
+        haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_alt.xml' )
+        #haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_alt2.xml' )
+        #haar_cascade = cv.Load( 'haarcascades/haarcascade_mcs_mouth.xml' )
+        #haar_cascade = cv.Load( 'haarcascades/haarcascade_eye.xml' )
+        #haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_alt_tree.xml' )
+        #haar_cascade = cv.Load( 'haarcascades/haarcascade_upperbody.xml' )
+        #haar_cascade = cv.Load( 'haarcascades/haarcascade_profileface.xml' )
+
+        #faces = cv.HaarDetectObjects(grayscale, haar_cascade, storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, (20, 20) )
+        #faces = cv.HaarDetectObjects(image, haar_cascade, storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING )
+        #faces = cv.HaarDetectObjects(image, haar_cascade, storage )
+        #faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 16, 16 ) )
+        #faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 4,4 ) )
+        faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( image_size[0]/10, image_size[1]/10) )
+
+        face_this_frame = {}
+        for face in faces:
+            box = face[0]
+            if capture:
+                cropped = np.asarray(image[:,:])
+                out = cropped[ box[1] : box[1] + box[3], box[0] : box[0] + box[2] ]
+                try:
+                    predicted, conf = recognizer.predict(out)
+                except:
+                    pass
+                # name = "../data/" + hash_func() + ".jpg"
+                # cv2.imwrite(name, out)
+                center = ( box[1]+box[3]/2, box[0]+box[2]/2 )
+                dist = 1000
+                name = None
+                found = False
+                if len(self.face_last_frame) > 0:
+                    n = None
+                    for f in self.face_last_frame.keys():
+                        temp = ( (f[0] - center[0])**2 + (f[1] - center[1])**2 ) ** 0.5
+                        if temp < dist:
+                            dist = temp
+                            n = f
+                    if dist < 10:
+                        found = True
+                        name = n
+                if not found:
+                    if conf < config.RECOGNIZE_THRESHOLD:
+                        name = util.hash_func()
+                    else:
+                        name = predicted
+                    cv2.imwrite("../data/" + util.hash_func() + name + ".jpg", out)
+                self.face_list.add_face(box, name)
+                face_this_frame[name] = box
+
+            cv.Rectangle(image, ( box[0], box[1] ),
+                ( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
+
+        if face_list.need_train():
+            face_list.untracked = 0
+            t = threading.Thread(target = util.train_recognizer, args = (face_list, recognizer) )
+        self.face_last_frame = face_this_frame
 
 
     def run(self):
@@ -85,6 +154,9 @@ class Target:
         codebook=[]
         last_frame_entity_list = []
 
+        # For face recognition
+        recognizer = cv2.createLBPHFaceRecognizer()
+
         # For image saving
         last_scene_clear = False
         time_limit = 2.0
@@ -101,17 +173,6 @@ class Target:
         text_font = cv.InitFont(cv.CV_FONT_HERSHEY_COMPLEX, .5, .5, 0.0, 1, cv.CV_AA )
         text_coord = ( 5, 15 )
         text_color = cv.CV_RGB(255,255,255)
-
-        ###############################
-        ### HaarCascade Selection
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_default.xml' )
-        haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_alt.xml' )
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_alt2.xml' )
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_mcs_mouth.xml' )
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_eye.xml' )
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_alt_tree.xml' )
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_upperbody.xml' )
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_profileface.xml' )
 
         # Set this to the max number of targets to look for (passed to k-means):
         max_targets = 3
@@ -435,36 +496,11 @@ class Target:
             if c == 27 or c == 10:
                 break
 
-            # Toggle which image to show
-            if chr(c) == 'd':
-                image_index = ( image_index + 1 ) % len( image_list )
-
-            image_name = image_list[ image_index ]
-
-            # Display frame to user
-            if image_name == "camera":
-                image = camera_image
-                cv.PutText( image, "Camera (Normal)", text_coord, text_font, text_color )
-            elif image_name == "difference":
-                image = difference
-                cv.PutText( image, "Difference Image", text_coord, text_font, text_color )
-            elif image_name == "display":
-                image = display_image
-                cv.PutText( image, "Targets (w/AABBs and contours)", text_coord, text_font, text_color )
-            elif image_name == "threshold":
-                # Convert the image to color.
-                cv.CvtColor( grey_image, display_image, cv.CV_GRAY2RGB )
-                image = display_image  # Re-use display image here
-                cv.PutText( image, "Motion Mask", text_coord, text_font, text_color )
-            elif image_name == "faces":
-                # Do face detection
-                if last_scene_clear and time.time() - last_save_face_time > face_time_limit:
-                    util.detect_faces( camera_image, haar_cascade, mem_storage, True )
-                    last_save_face_time = time.time()
-                else:
-                    util.detect_faces( camera_image, haar_cascade, mem_storage, False )
-                image = camera_image  # Re-use camera image here
-                cv.PutText( image, "Face Detection", text_coord, text_font, text_color )
+            if time.time() - last_save_face_time > face_time_limit:
+                self.detect_faces( camera_image, mem_storage, recognizer, True )
+                last_save_face_time = time.time()
+            else:
+                self.detect_faces( camera_image, mem_storage, recognizer, False )
 
             """
             Image saving
@@ -483,9 +519,9 @@ class Target:
             """
             Display
             """
-            size = cv.GetSize(image)
-            large = cv.CreateImage( ( int(size[0] * display_ratio), int(size[1] * display_ratio)), image.depth, image.nChannels)
-            cv.Resize(image, large, interpolation=cv2.INTER_CUBIC)
+            size = cv.GetSize(camera_image)
+            large = cv.CreateImage( ( int(size[0] * display_ratio), int(size[1] * display_ratio)), camera_image.depth, camera_image.nChannels)
+            cv.Resize(camera_image, large, interpolation=cv2.INTER_CUBIC)
             cv.ShowImage( "Target", large )
 
             frame_t1 = time.time()
