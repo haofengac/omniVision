@@ -8,13 +8,6 @@ from scipy.cluster import vq
 import numpy as np
 import time, sys, os, random, hashlib
 
-"""
-Python Motion Tracker
-
-Reads an incoming video stream and tracks motion in real time.
-Detected motion events are logged to a text file.  Also has face detection.
-"""
-
 class Target:
     def __init__(self):
 
@@ -50,6 +43,7 @@ class Target:
         cv.NamedWindow("Target", 1)
         #cv.NamedWindow("Target2", 1)
         self.face_last_frame = {}
+        self.record_face = []
 
 
     def detect_faces( self, image, mem_storage, recognizer, capture ):
@@ -74,14 +68,13 @@ class Target:
         #faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 4,4 ) )
         faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( image_size[0]/10, image_size[1]/10) )
 
-        if capture:
-            face_this_frame = {}
-        else:
-            face_this_frame = self.face_last_frame
+        face_this_frame = self.face_last_frame
+
+        save = False
 
         for face in faces:
             box = face[0]
-            if capture:
+            if True:
                 cropped = np.asarray(image[:,:])
                 out = cropped[ box[1] : box[1] + box[3], box[0] : box[0] + box[2] ]
                 try:
@@ -113,21 +106,28 @@ class Target:
                     if conf < RECOGNIZE_THRESHOLD:
                         if not found:
                             name = util.hash_func()
-                            cv2.imwrite("../data/" + util.hash_func() + name + ".jpg", out)
+                            self.record_face += [name]
+                            save = True
                     else:
                         name = "%0.6x" % predicted
+                        if not found:
+                            save = True
                 except:
                     if not found:
                         name = util.hash_func()
-                        cv2.imwrite("../data/" + util.hash_func() + name + ".jpg", out)
-                print name
-                print box
-                print center
+                        self.record_face += [name]
+                        save = True
+                
                 self.face_list.add_face(out, name)
                 face_this_frame[name] = box
 
-            cv.Rectangle(image, ( box[0], box[1] ),
+                cv.Rectangle(image, ( box[0], box[1] ),
                 ( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
+
+                text_coord = ( box[0] + box[2], box[1] + box[3])
+                text_font = cv.InitFont(cv.CV_FONT_HERSHEY_COMPLEX, .25, .25, 0.0, 1, cv.CV_AA )
+                text_color = cv.CV_RGB(255,0,0)
+                cv.PutText(image, "Person " + str(self.record_face.index(name)), text_coord, text_font, text_color)
 
         print face_list.untracked
         if self.face_list.need_train():
@@ -136,6 +136,8 @@ class Target:
             t = threading.Thread(target = util.train_recognizer, args = (face_list, recognizer) )
             t.run()
         self.face_last_frame = face_this_frame
+        if save and capture:
+            cv.SaveImage("../data/" + util.hash_func() + "Person" + str(self.record_face.index(name)) + ".jpg", image)
 
     def run(self):
         # Initialize
@@ -178,20 +180,11 @@ class Target:
 
         # For image saving
         last_scene_clear = False
-        time_limit = 2.0
+        time_limit = 5.0
         face_time_limit = 1.0
         last_save_time = time.time()
         last_save_face_time = time.time()
         accumulated_scenes = []
-
-        # For toggling display:
-        image_list = [ "camera", "difference", "threshold", "display", "faces" ]
-        image_index = 0   # Index into image_list
-
-        # Prep for text drawing:
-        text_font = cv.InitFont(cv.CV_FONT_HERSHEY_COMPLEX, .5, .5, 0.0, 1, cv.CV_AA )
-        text_coord = ( 5, 15 )
-        text_color = cv.CV_RGB(255,255,255)
 
         # Set this to the max number of targets to look for (passed to k-means):
         max_targets = 3
@@ -518,7 +511,7 @@ class Target:
                 self.detect_faces( camera_image, mem_storage, recognizer, True )
                 last_save_face_time = time.time()
             else:
-                self.detect_faces( camera_image, mem_storage, recognizer, False )
+                self.detect_faces( camera_image, mem_storage, recognizer, True )
 
             """
             Image saving
