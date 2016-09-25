@@ -38,7 +38,6 @@ class Target:
         self.writer = None
         self.face_list = util.face_info()
         frame = cv.QueryFrame(self.capture)
-        print(type(frame))
         frame_size = cv.GetSize(frame)
         cv.NamedWindow("Target", 1)
         #cv.NamedWindow("Target2", 1)
@@ -52,8 +51,8 @@ class Target:
 
         ###############################
         ### HaarCascade Selection
-        #haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_default.xml' )
-        haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_alt.xml' )
+        haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_default.xml' )
+        #haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_alt.xml' )
         #haar_cascade = cv.Load( 'haarcascades/haarcascade_frontalface_alt2.xml' )
         #haar_cascade = cv.Load( 'haarcascades/haarcascade_mcs_mouth.xml' )
         #haar_cascade = cv.Load( 'haarcascades/haarcascade_eye.xml' )
@@ -68,8 +67,8 @@ class Target:
         #faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 4,4 ) )
         faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( image_size[0]/10, image_size[1]/10) )
 
-        face_this_frame = self.face_last_frame
-
+        face_this_frame = {}
+        
         save = False
 
         for face in faces:
@@ -98,8 +97,8 @@ class Target:
                         if temp < dist:
                             dist = temp
                             n = f
-                    print dist
-                    if dist < 100:
+                    print "dist:", dist
+                    if dist < 300:
                         found = True
                         name = n
                 try:
@@ -181,7 +180,7 @@ class Target:
         # For image saving
         last_scene_clear = False
         time_limit = 5.0
-        face_time_limit = 1.0
+        face_time_limit = 3.0
         last_save_time = time.time()
         last_save_face_time = time.time()
         accumulated_scenes = []

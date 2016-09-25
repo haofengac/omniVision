@@ -18,7 +18,7 @@ class face_info:
         else:
             self.info[name] += [img]
 
-        if self.size <= 10:
+        if self.size <= 30:
             self.untracked += 1
             self.size += 1
             return True
@@ -129,8 +129,22 @@ def train_recognizer(face_list, recognizer):
         for i in face_list.info[f]:
             img = np.zeros((i.shape[0], i.shape[1], 1), dtype=np.uint8)
             img = cv2.cvtColor( i, cv2.COLOR_BGR2GRAY ).astype(np.uint8)
-            images.append(img)
+            images.append(increase_contrast(img))
             labels.append(int("0x" + f, 0))
-            print type(img)
-    print labels
     recognizer.train(images, np.array(labels))
+
+def increase_contrast(image):
+    maxIntensity = 255.0 # depends on dtype of image data
+    x = np.arange(maxIntensity) 
+    phi = 1
+    theta = 1
+
+    newImage0 = (maxIntensity/phi)*(image/(maxIntensity/theta))**0.5
+    newImage0 = np.array(newImage0,dtype=np.uint8)
+
+    y = (maxIntensity/phi)*(x/(maxIntensity/theta))**0.5
+
+    newImage1 = (maxIntensity/phi)*(image/(maxIntensity/theta))**2
+    newImage1 = np.array(newImage1,dtype=np.uint8)
+    return newImage1
+
