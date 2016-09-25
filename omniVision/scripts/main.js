@@ -23,10 +23,10 @@ function OmniVision() {
   this.messageList = document.getElementById('messages');
   this.messageForm = document.getElementById('message-form');
   this.messageInput = document.getElementById('message');
-  this.submitButton = document.getElementById('submit');
-  this.submitImageButton = document.getElementById('submitImage');
-  this.imageForm = document.getElementById('image-form');
-  this.mediaCapture = document.getElementById('mediaCapture');
+  // this.submitButton = document.getElementById('submit');
+  // this.submitImageButton = document.getElementById('submitImage');
+  // this.imageForm = document.getElementById('image-form');
+  // this.mediaCapture = document.getElementById('mediaCapture');
   this.userPic = document.getElementById('user-pic');
   this.userName = document.getElementById('user-name');
   this.signInButton = document.getElementById('sign-in');
@@ -34,20 +34,20 @@ function OmniVision() {
   this.signInSnackbar = document.getElementById('must-signin-snackbar');
 
   // Saves message on form submit.
-  this.messageForm.addEventListener('submit', this.saveMessage.bind(this));
+  // this.messageForm.addEventListener('submit', this.saveMessage.bind(this));
   this.signOutButton.addEventListener('click', this.signOut.bind(this));
   this.signInButton.addEventListener('click', this.signIn.bind(this));
 
   // Toggle for the button.
-  var buttonTogglingHandler = this.toggleButton.bind(this);
-  this.messageInput.addEventListener('keyup', buttonTogglingHandler);
-  this.messageInput.addEventListener('change', buttonTogglingHandler);
+  // var buttonTogglingHandler = this.toggleButton.bind(this);
+  // this.messageInput.addEventListener('keyup', buttonTogglingHandler);
+  // this.messageInput.addEventListener('change', buttonTogglingHandler);
 
   // Events for image upload.
-  this.submitImageButton.addEventListener('click', function() {
-    this.mediaCapture.click();
-  }.bind(this));
-  this.mediaCapture.addEventListener('change', this.saveImageMessage.bind(this));
+  // this.submitImageButton.addEventListener('click', function() {
+  //   this.mediaCapture.click();
+  // }.bind(this));
+  // this.mediaCapture.addEventListener('change', this.saveImageMessage.bind(this));
 
   this.initFirebase();
 }
@@ -74,30 +74,30 @@ OmniVision.prototype.loadMessages = function() {
     var val = data.val();
     this.displayMessage(data.key, val.name, val.text, val.photoUrl, val.imageUrl);
   }.bind(this);
-  this.messagesRef.limitToLast(12).on('child_added', setMessage);
-  this.messagesRef.limitToLast(12).on('child_changed', setMessage);
+  this.messagesRef.limitToLast(20).on('child_added', setMessage);
+  this.messagesRef.limitToLast(20).on('child_changed', setMessage);
 };
 
 // Saves a new message on the Firebase DB.
-OmniVision.prototype.saveMessage = function(e) {
-  e.preventDefault();
-  // Check that the user entered a message and is signed in.
-  if (this.messageInput.value && this.checkSignedInWithMessage()) {
-    var currentUser = this.auth.currentUser;
-    // Add a new message entry to the Firebase Database.
-    this.messagesRef.push({
-      name: currentUser.displayName,
-      text: this.messageInput.value,
-      photoUrl: currentUser.photoURL || '/images/profile_placeholder.png'
-    }).then(function() {
-      // Clear message text field and SEND button state.
-      OmniVision.resetMaterialTextfield(this.messageInput);
-      this.toggleButton();
-    }.bind(this)).catch(function(error) {
-      console.error('Error writing new message to Firebase Database', error);
-    });
-  }
-};
+// OmniVision.prototype.saveMessage = function(e) {
+//   e.preventDefault();
+//   // Check that the user entered a message and is signed in.
+//   if (this.messageInput.value && this.checkSignedInWithMessage()) {
+//     var currentUser = this.auth.currentUser;
+//     // Add a new message entry to the Firebase Database.
+//     this.messagesRef.push({
+//       name: currentUser.displayName,
+//       text: this.messageInput.value,
+//       photoUrl: currentUser.photoURL || '/images/profile_placeholder.png'
+//     }).then(function() {
+//       // Clear message text field and SEND button state.
+//       OmniVision.resetMaterialTextfield(this.messageInput);
+//       // this.toggleButton();
+//     }.bind(this)).catch(function(error) {
+//       console.error('Error writing new message to Firebase Database', error);
+//     });
+//   }
+// };
 
 // Sets the URL of the given img element with the URL of the image stored in Firebase Storage.
 OmniVision.prototype.setImageUrl = function(imageUri, imgElement) {
@@ -112,51 +112,52 @@ OmniVision.prototype.setImageUrl = function(imageUri, imgElement) {
   }
 };
 
+
 // Saves a new message containing an image URI in Firebase.
 // This first saves the image in Firebase storage.
-OmniVision.prototype.saveImageMessage = function(event) {
+// OmniVision.prototype.saveImageMessage = function(event) {
 
-  var file = event.target.files[0];
+//   var file = event.target.files[0];
 
-  // Clear the selection in the file picker input.
-  this.imageForm.reset();
+//   // Clear the selection in the file picker input.
+//   this.imageForm.reset();
 
-  // Check if the file is an image.
-  if (!file.type.match('image.*')) {
-    var data = {
-      message: 'You can only share images',
-      timeout: 2000
-    };
-    this.signInSnackbar.MaterialSnackbar.showSnackbar(data);
-    return;
-  }
+//   // Check if the file is an image.
+//   if (!file.type.match('image.*')) {
+//     var data = {
+//       message: 'You can only share images',
+//       timeout: 2000
+//     };
+//     this.signInSnackbar.MaterialSnackbar.showSnackbar(data);
+//     return;
+//   }
 
-  // Check if the user is signed-in
-  if (this.checkSignedInWithMessage()) {
+//   // Check if the user is signed-in
+//   if (this.checkSignedInWithMessage()) {
 
-    // We add a message with a loading icon that will get updated with the shared image.
-    var currentUser = this.auth.currentUser;
-    this.messagesRef.push({
-      name: currentUser.displayName,
-      imageUrl: OmniVision.LOADING_IMAGE_URL,
-      photoUrl: currentUser.photoURL || '/images/profile_placeholder.png'
-    }).then(function(data) {
+//     // We add a message with a loading icon that will get updated with the shared image.
+//     var currentUser = this.auth.currentUser;
+//     this.messagesRef.push({
+//       name: currentUser.displayName,
+//       imageUrl: OmniVision.LOADING_IMAGE_URL,
+//       photoUrl: currentUser.photoURL || '/images/profile_placeholder.png'
+//     }).then(function(data) {
 
-      // Upload the image to Firebase Storage.
-      var uploadTask = this.storage.ref(currentUser.uid + '/' + Date.now() + '/' + file.name)
-          .put(file, {'contentType': file.type});
-      // Listen for upload completion.
-      uploadTask.on('state_changed', null, function(error) {
-        console.error('There was an error uploading a file to Firebase Storage:', error);
-      }, function() {
+//       // Upload the image to Firebase Storage.
+//       var uploadTask = this.storage.ref(currentUser.uid + '/' + Date.now() + '/' + file.name)
+//           .put(file, {'contentType': file.type});
+//       // Listen for upload completion.
+//       uploadTask.on('state_changed', null, function(error) {
+//         console.error('There was an error uploading a file to Firebase Storage:', error);
+//       }, function() {
 
-        // Get the file's Storage URI and update the chat message placeholder.
-        var filePath = uploadTask.snapshot.metadata.fullPath;
-        data.update({imageUrl: this.storage.ref(filePath).toString()});
-      }.bind(this));
-    }.bind(this));
-  }
-};
+//         // Get the file's Storage URI and update the chat message placeholder.
+//         var filePath = uploadTask.snapshot.metadata.fullPath;
+//         data.update({imageUrl: this.storage.ref(filePath).toString()});
+//       }.bind(this));
+//     }.bind(this));
+//   }
+// };
 
 // Signs-in Omni Vision.
 OmniVision.prototype.signIn = function() {
@@ -273,13 +274,13 @@ OmniVision.prototype.displayMessage = function(key, name, text, picUrl, imageUri
 
 // Enables or disables the submit button depending on the values of the input
 // fields.
-OmniVision.prototype.toggleButton = function() {
-  if (this.messageInput.value) {
-    this.submitButton.removeAttribute('disabled');
-  } else {
-    this.submitButton.setAttribute('disabled', 'true');
-  }
-};
+// OmniVision.prototype.toggleButton = function() {
+//   if (this.messageInput.value) {
+//     this.submitButton.removeAttribute('disabled');
+//   } else {
+//     this.submitButton.setAttribute('disabled', 'true');
+//   }
+// };
 
 // Checks that the Firebase SDK has been correctly setup and configured.
 OmniVision.prototype.checkSetup = function() {
@@ -299,3 +300,4 @@ OmniVision.prototype.checkSetup = function() {
 window.onload = function() {
   window.omniVision = new OmniVision();
 };
+
