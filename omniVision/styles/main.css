@@ -22,11 +22,12 @@ main, #messages-card {
   padding-bottom: 0;
 }
 #messages-card-container {
-  height: calc(100% - 150px);
+  height: 100%;
   padding-bottom: 0;
 }
 #messages-card {
   margin-top: 15px;
+  margin-bottom: 15px;
 }
 .mdl-layout__header-row span {
   margin-left: 15px;
@@ -104,13 +105,13 @@ main, #messages-card {
 #message-form {
   display: flex;
   flex-direction: row;
-  width: calc(100% - 48px);
+  width: calc(100% - 20px);
   float: left;
 }
 #image-form {
   display: flex;
   flex-direction: row;
-  width: 48px;
+  width: 20px;
   float: right;
 }
 #message-form .mdl-textfield {
@@ -177,7 +178,7 @@ main, #messages-card {
   }
   #user-container {
     top: 72px;
-    background-color: rgb(3,155,229); /*rgb(0,255,255)*/
+    background-color: rgb(25,25,112);
     height: 38px;
     padding-top: 3px;
     padding-right: 2px;
@@ -190,10 +191,10 @@ main, #messages-card {
   }
 }
 .mdl-textfield__label:after {
-  background-color: #0288D1;
+  background-color: rgb(25,25,112);
 }
 .mdl-textfield--floating-label.is-focused .mdl-textfield__label {
-  color: #0288D1;
+  color: rgb(25,25,112);
 }
 .mdl-button .material-icons {
   top: -1px;
