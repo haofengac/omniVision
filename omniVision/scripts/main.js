@@ -72,12 +72,12 @@ OmniVision.prototype.loadMessages = function() {
   // Loads the last 12 messages and listen for new ones.
   var setMessage = function(data) {
     var val = data.val();
-    this.displayMessage(data.key, val.name, val.text, val.photoUrl, val.imageUrl);
+    this.displayMessage(data.key, val.name, val.id, val.photoUrl, val.imageUrl);
   }.bind(this);
   // Sends desktop push notification 
   var sendNotification = function(data){
     var val = data.val();
-    this.notification(data.key, val.name, val.text, val.photoUrl, val.imageUrl);
+    this.notification(data.key, val.name, val.id, val.photoUrl, val.imageUrl);
   }.bind(this);
   this.messagesRef.limitToLast(12).on('child_added', setMessage);
   this.messagesRef.limitToLast(12).on('child_changed', setMessage);
@@ -186,7 +186,7 @@ OmniVision.MESSAGE_TEMPLATE =
 OmniVision.LOADING_IMAGE_URL = 'https://www.google.com/images/spin-32.gif';
 
 // Displays a Message in the UI.
-OmniVision.prototype.displayMessage = function(key, name, text, picUrl, imageUri) {
+OmniVision.prototype.displayMessage = function(key, name, id, picUrl, imageUri) {
   var div = document.getElementById(key);
   // If an element for that message does not exists yet we create it.
   if (!div) {
@@ -199,13 +199,14 @@ OmniVision.prototype.displayMessage = function(key, name, text, picUrl, imageUri
   if (picUrl) {
     div.querySelector('.pic').style.backgroundImage = 'url(' + picUrl + ')';
   }
-  div.querySelector('.name').textContent = name;
+  // Face recognition feature
+  if(id) {
+    div.querySelector('.name').textContent = id;
+  } else {
+    div.querySelector('.name').textContent = 'unknown';
+  }
   var messageElement = div.querySelector('.message');
-  if (text) { // If the message is text.
-    messageElement.textContent = text;
-    // Replace all line breaks by <br>.
-    messageElement.innerHTML = messageElement.innerHTML.replace(/\n/g, '<br>');
-  } else if (imageUri) { // If the message is an image.
+  if (imageUri) { // If the message is an image.
     var image = document.createElement('img');
     image.addEventListener('load', function() {
       this.messageList.scrollTop = this.messageList.scrollHeight;
