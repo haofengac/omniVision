@@ -5,7 +5,7 @@ import time
 # BBoxes must be in the format:
 # ( (topleft_x), (topleft_y) ), ( (bottomright_x), (bottomright_y) ) )
 
-import thread, time
+import threading, time
 import hashlib
 import numpy as np
 
@@ -18,4 +18,4 @@ CAPTURE_WIDTH = 320
 CAPTURE_HEIGHT = 240
 display_ratio = 2.5
 
-RECOGNIZE_THRESHOLD = 50
+RECOGNIZE_THRESHOLD = 30

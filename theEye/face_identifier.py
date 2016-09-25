@@ -49,7 +49,7 @@ class Target:
         frame_size = cv.GetSize(frame)
         cv.NamedWindow("Target", 1)
         #cv.NamedWindow("Target2", 1)
-        face_last_frame = {}
+        self.face_last_frame = {}
 
 
     def detect_faces( self, image, mem_storage, recognizer, capture ):
@@ -74,49 +74,68 @@ class Target:
         #faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( 4,4 ) )
         faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( image_size[0]/10, image_size[1]/10) )
 
-        face_this_frame = {}
+        if capture:
+            face_this_frame = {}
+        else:
+            face_this_frame = self.face_last_frame
+
         for face in faces:
             box = face[0]
             if capture:
                 cropped = np.asarray(image[:,:])
                 out = cropped[ box[1] : box[1] + box[3], box[0] : box[0] + box[2] ]
                 try:
-                    predicted, conf = recognizer.predict(out)
+                    img = np.zeros((out.shape[0], out.shape[1], 1), dtype=np.uint8)
+                    img = cv2.cvtColor( out, cv2.COLOR_BGR2GRAY ).astype(np.uint8)
+                    predicted, conf = recognizer.predict(img)
+                    print "%0.6x" % predicted
+                    print conf
                 except:
                     pass
                 # name = "../data/" + hash_func() + ".jpg"
                 # cv2.imwrite(name, out)
-                center = ( box[1]+box[3]/2, box[0]+box[2]/2 )
+                center = ( (box[1]+box[3])/2, (box[0]+box[2])/2 )
                 dist = 1000
                 name = None
                 found = False
                 if len(self.face_last_frame) > 0:
                     n = None
                     for f in self.face_last_frame.keys():
-                        temp = ( (f[0] - center[0])**2 + (f[1] - center[1])**2 ) ** 0.5
+                        temp = ( (self.face_last_frame.get(f)[0] - center[0])**2 + (self.face_last_frame.get(f)[1] - center[1])**2 ) ** 0.5
                         if temp < dist:
                             dist = temp
                             n = f
-                    if dist < 10:
+                    print dist
+                    if dist < 100:
                         found = True
                         name = n
-                if not found:
-                    if conf < config.RECOGNIZE_THRESHOLD:
-                        name = util.hash_func()
+                try:
+                    if conf < RECOGNIZE_THRESHOLD:
+                        if not found:
+                            name = util.hash_func()
+                            cv2.imwrite("../data/" + util.hash_func() + name + ".jpg", out)
                     else:
-                        name = predicted
-                    cv2.imwrite("../data/" + util.hash_func() + name + ".jpg", out)
-                self.face_list.add_face(box, name)
+                        name = "%0.6x" % predicted
+                except:
+                    if not found:
+                        name = util.hash_func()
+                        cv2.imwrite("../data/" + util.hash_func() + name + ".jpg", out)
+                print name
+                print box
+                print center
+                self.face_list.add_face(out, name)
                 face_this_frame[name] = box
 
             cv.Rectangle(image, ( box[0], box[1] ),
                 ( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
 
-        if face_list.need_train():
-            face_list.untracked = 0
+        print face_list.untracked
+        if self.face_list.need_train():
+            print "Training......................................................"
+            self.face_list.untracked = 0
             t = threading.Thread(target = util.train_recognizer, args = (face_list, recognizer) )
+            t.run()
         self.face_last_frame = face_this_frame
-
 
     def run(self):
         # Initialize
@@ -160,7 +179,7 @@ class Target:
         # For image saving
         last_scene_clear = False
         time_limit = 2.0
-        face_time_limit = 3.0
+        face_time_limit = 1.0
         last_save_time = time.time()
         last_save_face_time = time.time()
         accumulated_scenes = []
@@ -292,6 +311,7 @@ class Target:
 
 
             # For obj counting
+            """
             print str(len(bounding_box_list)) + " boxes found."
             if (len(bounding_box_list) > last_frame_objs):
                 obj_count += len(bounding_box_list) - last_frame_objs
@@ -299,8 +319,6 @@ class Target:
             last_frame_objs = len(bounding_box_list)
             print str(obj_count) + " total objs."
 
-
-            """
             Estimated target
             """
             # Here are our estimate points to track, based on merged & trimmed boxes:

@@ -14,9 +14,9 @@ class face_info:
 
     def add_face(self, img, name):
         if self.info.get(name) == None:
-            self.info[name] = img
+            self.info[name] = [img]
         else:
-            self.info[name] += img
+            self.info[name] += [img]
 
         if self.size <= 10:
             self.untracked += 1
@@ -25,7 +25,7 @@ class face_info:
         return False
 
     def need_train(self):
-        if self.untracked >= 10:
+        if self.untracked >= 7:
             return True
 
 def merge_collided_bboxes( bbox_list ):
@@ -125,8 +125,12 @@ def detect_faces( image, haar_cascade, mem_storage, face_list, recognizer, captu
 def train_recognizer(face_list, recognizer):
     images = []
     labels = []
-    for f in face_list:
-        for img in f:
-            images += [img]
-            labels += [f]
-    recognizer.train(images, labels)
+    for f in face_list.info.keys():
+        for i in face_list.info[f]:
+            img = np.zeros((i.shape[0], i.shape[1], 1), dtype=np.uint8)
+            img = cv2.cvtColor( i, cv2.COLOR_BGR2GRAY ).astype(np.uint8)
+            images.append(img)
+            labels.append(int("0x" + f, 0))
+            print type(img)
+    print labels
+    recognizer.train(images, np.array(labels))
