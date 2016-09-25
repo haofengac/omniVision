@@ -42,6 +42,6 @@ while True:
         # get file image and send to firebase app
         print "Sending image data to firebase app"
         url = transferData.get_file_url(dpx_path)
-        firebase.send_message(url, fn[:fn.rfind('.')][-6:], transferData.get_file_time(dpx_path))
+        firebase.send_message(url, fn[6:], transferData.get_file_time(dpx_path))
 
     sleep(loop_frequency)
