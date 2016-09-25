@@ -68,7 +68,7 @@ class Target:
         faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( image_size[0]/10, image_size[1]/10) )
 
         face_this_frame = {}
-        
+
         save = False
 
         for face in faces:
@@ -98,7 +98,7 @@ class Target:
                             dist = temp
                             n = f
                     print "dist:", dist
-                    if dist < 300:
+                    if dist < 100:
                         found = True
                         name = n
                 try:
@@ -126,7 +126,7 @@ class Target:
                 text_coord = ( box[0] + box[2], box[1] + box[3])
                 text_font = cv.InitFont(cv.CV_FONT_HERSHEY_COMPLEX, .25, .25, 0.0, 1, cv.CV_AA )
                 text_color = cv.CV_RGB(255,0,0)
-                cv.PutText(image, "Person " + str(self.record_face.index(name)), text_coord, text_font, text_color)
+                cv.PutText(image, "Human Frontal Face", text_coord, text_font, text_color)
 
         print face_list.untracked
         if self.face_list.need_train():
