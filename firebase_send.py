@@ -11,5 +11,5 @@ class Firebase:
     def get_messages(self):
         return self.firebase.get('/messages', name=None, connection=None, params={'print': 'pretty'})
 
-    def send_message(self, url):
-        return self.firebase.post('/messages', {'imageUrl': url, 'name': 'bhp'})
+    def send_message(self, url, image_id='666666', time=''):
+        return self.firebase.post('/messages', {'imageUrl': url, 'id': image_id, 'time': time, 'name': 'User1'})
